@@ -1,4 +1,4 @@
-from QuickPay.wallet.models import Wallet
+from wallet.models import Wallet
 
 def create_wallet(user):
     return Wallet.objects.create(
