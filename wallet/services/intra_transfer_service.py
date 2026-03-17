@@ -1,9 +1,7 @@
 from decimal import Decimal
 from uuid import UUID
 from django.db import transaction
-
-from wallet.models import Wallet
-from wallet.models import Transaction, Ledger
+from ..models import Wallet,Transaction,Ledger
 
 
 def transfer_wallet_to_wallet(
@@ -17,9 +15,8 @@ def transfer_wallet_to_wallet(
 
     if sender.pk == receiver.pk:
         raise Exception("Cannot transfer to self")
-
-    if amount > sender.balance:
-        raise Exception("Sender balance cannot be greater than receiver balance")
+    if amount < sender.balance:
+        raise Exception("insufficient balance")
 
     existing_tx = Transaction.objects.filter(
         idempotency_key=idempotency_key
@@ -46,7 +43,7 @@ def transfer_wallet_to_wallet(
             amount=amount,
             idempotency_key=idempotency_key,
             transaction_type="CREDIT",
-            transaction_status="SUCCESSFUL",
+            status="SUCCESSFUL",
             description=description
         )
 
@@ -54,16 +51,16 @@ def transfer_wallet_to_wallet(
             transaction=tx,
             amount=amount,
             wallet=sender_wallet,
-            balance=sender_wallet.balance,
-            transaction_type="DEBIT"
+            balance_after=sender_wallet.balance,
+            entry_type="DEBIT"
         )
 
         Ledger.objects.create(
             transaction=tx,
             amount=amount,
             wallet=receiver_wallet,
-            balance=receiver_wallet.balance,
-            transaction_type="CREDIT"
+            balance_after=receiver_wallet.balance,
+            entry_type="CREDIT"
         )
 
         return tx
